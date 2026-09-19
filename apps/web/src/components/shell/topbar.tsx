@@ -46,15 +46,18 @@ function EnvSelector() {
   const setActive = useWorkspaceStore((s) => s.setActiveEnvironment);
 
   if (!project?.environments?.length) return null;
-  const active = project.environments.find((e) => e.id === activeId) ?? project.environments.find((e) => e.isDefault) ?? project.environments[0];
-  if (!activeId && active) setActive(active.id);
+  // null = auto (default env); "none" = explicitly no environment
+  const active =
+    activeId === "none"
+      ? null
+      : project.environments.find((e) => e.id === activeId) ?? project.environments.find((e) => e.isDefault) ?? project.environments[0];
 
   return (
     <Dropdown>
       <DropdownTrigger asChild>
         <button className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2.5 text-[12px] text-fg-muted hover:border-border-strong hover:text-fg transition-colors">
           <Globe size={13} className="text-accent" />
-          <span className="max-w-32 truncate">{active.name}</span>
+          <span className="max-w-32 truncate">{active?.name ?? "No env"}</span>
           <ChevronDown size={12} className="text-fg-faint" />
         </button>
       </DropdownTrigger>
@@ -63,12 +66,12 @@ function EnvSelector() {
         {project.environments.map((env) => (
           <DropdownItem key={env.id} onSelect={() => setActive(env.id)}>
             <span className="flex-1 truncate">{env.name}</span>
-            {env.id === active.id && <Check size={13} className="text-accent" />}
+            {env.id === active?.id && <Check size={13} className="text-accent" />}
           </DropdownItem>
         ))}
-        <DropdownItem onSelect={() => setActive(null)}>
+        <DropdownItem onSelect={() => setActive("none")}>
           <span className="flex-1 text-fg-faint">No environment</span>
-          {!activeId && <Check size={13} className="text-accent" />}
+          {activeId === "none" && <Check size={13} className="text-accent" />}
         </DropdownItem>
       </DropdownContent>
     </Dropdown>

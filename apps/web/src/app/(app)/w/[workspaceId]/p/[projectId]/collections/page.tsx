@@ -79,10 +79,12 @@ export default function CollectionsPage({ params }: { params: Promise<{ workspac
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, project]);
 
-  const activeEnvId = store.activeEnvironmentId
-    ?? project?.environments?.find((e) => e.isDefault)?.id
-    ?? project?.environments?.[0]?.id
-    ?? null;
+  const activeEnvId = store.activeEnvironmentId === "none"
+    ? null
+    : store.activeEnvironmentId
+      ?? project?.environments?.find((e) => e.isDefault)?.id
+      ?? project?.environments?.[0]?.id
+      ?? null;
 
   async function openRequestById(id: string) {
     try {

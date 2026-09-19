@@ -110,6 +110,13 @@ authRouter.post("/logout", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Short-lived token for WebSocket auth — cookies are httpOnly so the
+// socket client cannot read them; this token is passed via handshake auth.
+authRouter.get("/socket-token", requireAuth, (req, res) => {
+  const token = signAccessToken({ sub: req.user!.id, email: req.user!.email, name: req.user!.name });
+  res.json({ token });
+});
+
 authRouter.get("/me", requireAuth, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
