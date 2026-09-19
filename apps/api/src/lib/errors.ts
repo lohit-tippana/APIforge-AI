@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 export class ApiError extends Error {
@@ -31,6 +32,17 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
         details: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
       },
     });
+  }
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    console.error("[api] database unreachable:", err.message?.slice(0, 300));
+    return res.status(503).json({ error: { code: "SERVICE_UNAVAILABLE", message: "Service temporarily unavailable — database connection failed" } });
+  }
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: { code: "CONFLICT", message: "A record with this value already exists" } });
+    }
+    console.error("[api] prisma error", err.code, err.message?.slice(0, 300));
+    return res.status(500).json({ error: { code: "INTERNAL", message: "Internal server error" } });
   }
   console.error("[api] unhandled error:", err);
   return res.status(500).json({ error: { code: "INTERNAL", message: "Internal server error" } });

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
-  Activity, BarChart3, BookOpen, Boxes, ChevronsUpDown, Clock, FlaskConical, FolderGit2,
+  Activity, BarChart3, BookOpen, Boxes, ChevronsUpDown, FlaskConical, FolderGit2,
   Globe, History, LayoutDashboard, LogOut, Plus, Settings, Sparkles, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -117,7 +117,6 @@ export function Sidebar() {
   const projectId = params.projectId;
   const ws = params.workspaceId;
   const projectBase = projectId ? `/w/${ws}/p/${projectId}` : null;
-  const activeProject = workspace?.projects?.find((p) => p.id === projectId);
 
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-border bg-surface">

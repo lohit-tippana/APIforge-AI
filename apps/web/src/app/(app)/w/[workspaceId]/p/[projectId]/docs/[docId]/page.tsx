@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Pencil } from "lucide-react";
 import { get, put } from "@/lib/api";
 import type { Doc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -40,26 +40,6 @@ export default function DocPage({ params }: { params: Promise<{ workspaceId: str
     queryFn: () => get<{ doc: Doc }>(`/docs/${docId}`).then((r) => r.doc),
   });
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-
-  useEffect(() => {
-    if (data) {
-      setTitle(data.title);
-      setContent(data.content ?? "");
-    }
-  }, [data]);
-
-  const save = useMutation({
-    mutationFn: () => put(`/docs/${docId}`, { title, content, published: data?.published }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["doc", docId] });
-      qc.invalidateQueries({ queryKey: ["docs", projectId] });
-      setEditing(false);
-      toast.success("Saved");
-    },
-    onError: (e) => toast.error(e.message),
-  });
 
   const togglePublish = useMutation({
     mutationFn: () => put(`/docs/${docId}`, { published: !data?.published }),
@@ -73,26 +53,16 @@ export default function DocPage({ params }: { params: Promise<{ workspaceId: str
           <ArrowLeft size={13} /> Docs
         </Link>
         <span className="text-fg-faint">/</span>
-        {editing ? (
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className="h-7 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2 text-[13px] font-medium text-fg focus:border-accent/50 focus:outline-none" />
-        ) : (
-          <span className="text-[13px] font-medium">{data?.title}</span>
-        )}
+        <span className="text-[13px] font-medium">{data?.title}</span>
         {data && <Badge tone={data.source === "MANUAL" ? "default" : "accent"}>{data.source.toLowerCase()}</Badge>}
+        {data?.published && <Badge tone="success">published</Badge>}
         <div className="flex-1" />
-        {data && (
+        {data && !editing && (
           <>
             <Button size="sm" variant="outline" onClick={() => togglePublish.mutate()}>
               {data.published ? "Unpublish" : "Publish"}
             </Button>
-            {editing ? (
-              <>
-                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-                <Button size="sm" variant="primary" onClick={() => save.mutate()} disabled={save.isPending}><Check size={13} /> Save</Button>
-              </>
-            ) : (
-              <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><Pencil size={12} /> Edit</Button>
-            )}
+            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><Pencil size={12} /> Edit</Button>
           </>
         )}
       </div>
@@ -102,14 +72,45 @@ export default function DocPage({ params }: { params: Promise<{ workspaceId: str
           <div className="doc-content mx-auto max-w-3xl px-8 py-6" dangerouslySetInnerHTML={{ __html: renderMarkdown(data.content ?? "") }} />
         )}
         {data && editing && (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="h-full w-full resize-none bg-transparent p-6 font-mono text-[12.5px] leading-relaxed text-fg focus:outline-none"
-            spellCheck={false}
-          />
+          <DocEditor key={data.id + data.updatedAt} doc={data} projectId={projectId} onClose={() => setEditing(false)} />
         )}
       </div>
+    </div>
+  );
+}
+
+function DocEditor({ doc, projectId, onClose }: { doc: Doc; projectId: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [title, setTitle] = useState(doc.title);
+  const [content, setContent] = useState(doc.content ?? "");
+  const save = useMutation({
+    mutationFn: () => put(`/docs/${doc.id}`, { title, content }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doc", doc.id] });
+      qc.invalidateQueries({ queryKey: ["docs", projectId] });
+      onClose();
+      toast.success("Saved");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 border-b border-border/50 px-6 py-2">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="h-8 flex-1 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2.5 text-[13px] font-medium text-fg focus:border-accent/50 focus:outline-none"
+        />
+        <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button size="sm" variant="primary" onClick={() => save.mutate()} disabled={save.isPending || !title.trim()}><Check size={13} /> Save</Button>
+      </div>
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="min-h-0 flex-1 resize-none bg-transparent p-6 font-mono text-[12.5px] leading-relaxed text-fg focus:outline-none"
+        spellCheck={false}
+      />
     </div>
   );
 }

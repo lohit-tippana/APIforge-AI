@@ -2,10 +2,9 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, FilePlus2, Save, Send, Sparkles, X } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Save, Send, Sparkles } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { get, post, put } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import type { ApiRequest, Assertion, ExecutedResponse } from "@/lib/types";
 import { useProject } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
@@ -19,7 +18,7 @@ import { AssertionsEditor } from "@/components/api-client/assertions-editor";
 import { ResponseViewer } from "@/components/api-client/response-viewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge, EmptyState, ScrollArea } from "@/components/ui/misc";
+import { Badge } from "@/components/ui/misc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/input";
 import { Zap } from "lucide-react";
@@ -430,39 +429,31 @@ export default function CollectionsPage({ params }: { params: Promise<{ workspac
       </Dialog>
 
       {/* ── Save-as dialog ── */}
-      <SaveAsDialog
-        open={saveAsOpen}
-        onOpenChange={setSaveAsOpen}
-        collections={project?.collections ?? []}
-        initialName={draft.name}
-        onSave={save}
-      />
+      {saveAsOpen && (
+        <SaveAsDialog
+          onOpenChange={setSaveAsOpen}
+          collections={project?.collections ?? []}
+          initialName={draft.name}
+          onSave={save}
+        />
+      )}
     </div>
   );
 }
 
-function SaveAsDialog({ open, onOpenChange, collections, initialName, onSave }: {
-  open: boolean;
+function SaveAsDialog({ onOpenChange, collections, initialName, onSave }: {
   onOpenChange: (v: boolean) => void;
   collections: { id: string; name: string; folders?: { id: string; name: string; parentId?: string | null }[] }[];
   initialName: string;
   onSave: (target: { collectionId: string; folderId?: string | null; name: string }) => Promise<void>;
 }) {
   const [name, setName] = useState(initialName);
-  const [collectionId, setCollectionId] = useState("");
+  const [collectionId, setCollectionId] = useState(collections[0]?.id ?? "");
   const [folderId, setFolderId] = useState("");
   const col = collections.find((c) => c.id === collectionId);
 
-  useEffect(() => {
-    if (open) {
-      setName(initialName);
-      setCollectionId(collections[0]?.id ?? "");
-      setFolderId("");
-    }
-  }, [open, initialName, collections]);
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent title="Save request" description="Choose where this request lives.">
         <form className="space-y-3.5" onSubmit={async (e) => {
           e.preventDefault();

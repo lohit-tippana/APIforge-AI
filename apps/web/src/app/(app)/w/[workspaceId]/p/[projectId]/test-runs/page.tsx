@@ -1,12 +1,11 @@
 "use client";
 
-import { use } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, FlaskConical, Play, XCircle } from "lucide-react";
 import { get } from "@/lib/api";
-import { cn, formatDuration, statusColor, timeAgo } from "@/lib/utils";
+import { cn, formatDuration, timeAgo } from "@/lib/utils";
 import type { TestRun } from "@/lib/types";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 

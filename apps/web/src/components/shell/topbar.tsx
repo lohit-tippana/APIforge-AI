@@ -9,7 +9,7 @@ import { cn, timeAgo } from "@/lib/utils";
 import { useProject, useWorkspace } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 import type { Notification } from "@/lib/types";
-import { Badge, Kbd } from "@/components/ui/misc";
+import { Kbd } from "@/components/ui/misc";
 import { Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownTrigger } from "@/components/ui/dropdown";
 import { PopoverRoot, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Boxes, FlaskConical, Globe, Lock, Search, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowRight, FlaskConical, Globe, Lock, Search, Sparkles, Users, Zap } from "lucide-react";
 
 const FEATURES = [
   { icon: Zap, title: "Fast request builder", desc: "Params, auth, headers, body and tests in one dense, keyboard-first workspace." },

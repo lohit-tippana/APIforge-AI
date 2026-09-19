@@ -10,16 +10,12 @@ import { Zap } from "lucide-react";
 function InviteInner() {
   const params = useSearchParams();
   const router = useRouter();
-  const [state, setState] = useState<"loading" | "error" | "done">("loading");
-  const [message, setMessage] = useState("");
+  const [state, setState] = useState<"loading" | "error" | "done">(() => (params.get("token") ? "loading" : "error"));
+  const [message, setMessage] = useState(() => (params.get("token") ? "" : "Missing invite token"));
 
   useEffect(() => {
     const token = params.get("token");
-    if (!token) {
-      setState("error");
-      setMessage("Missing invite token");
-      return;
-    }
+    if (!token) return;
     post<{ workspace: { id: string; name: string } }>("/invites/accept", { token })
       .then((d) => {
         setState("done");

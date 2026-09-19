@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 const env = (key: string, fallback = ""): string => process.env[key] ?? fallback;
 
 const isProd = process.env.NODE_ENV === "production";

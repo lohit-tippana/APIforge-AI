@@ -24,7 +24,7 @@ const executeSchema = z.object({
   authConfig: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
-executeRouter.post("/", validate({ body: executeSchema }), async (req, res, next) => {
+executeRouter.post("/execute", validate({ body: executeSchema }), async (req, res, next) => {
   try {
     await new Promise<void>((resolve, reject) =>
       requireProjectRole("VIEWER")(req, res, (e) => (e ? reject(e) : resolve())),

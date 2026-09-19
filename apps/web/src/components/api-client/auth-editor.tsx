@@ -12,6 +12,15 @@ const AUTH_TYPES = [
   { id: "APIKEY", label: "API Key" },
 ] as const;
 
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-1.5">
+      <span className="text-[12px] text-fg-muted">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 export function AuthEditor({
   authType,
   authConfig,
@@ -24,13 +33,6 @@ export function AuthEditor({
   const cfg = (k: string) => String(authConfig[k] ?? "");
   const set = (k: string, v: string) => onChange(authType, { ...authConfig, [k]: v });
   const active = AUTH_TYPES.find((t) => t.id === authType) ?? AUTH_TYPES[0];
-
-  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="grid grid-cols-[140px_1fr] items-center gap-3 py-1.5">
-      <span className="text-[12px] text-fg-muted">{label}</span>
-      {children}
-    </div>
-  );
 
   return (
     <div className="max-w-xl p-3">

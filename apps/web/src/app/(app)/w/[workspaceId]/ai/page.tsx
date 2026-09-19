@@ -6,7 +6,6 @@ import { ArrowUp, BookOpen, FilePlus2, FlaskConical, Sparkles, Wand2 } from "luc
 import { get, post } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/misc";
-import { useProject } from "@/lib/hooks";
 import { useWorkspace } from "@/lib/hooks";
 import { toast } from "sonner";
 

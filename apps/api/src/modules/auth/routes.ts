@@ -3,7 +3,7 @@ import { z } from "zod";
 import { config } from "../../config";
 import { prisma } from "../../lib/prisma";
 import { hashPassword, randomToken, sha256, verifyPassword } from "../../lib/crypto";
-import { badRequest, unauthorized } from "../../lib/errors";
+import { conflict, unauthorized } from "../../lib/errors";
 import { signAccessToken } from "../../lib/jwt";
 import { requireAuth } from "../../middleware/auth";
 import { validate } from "../../lib/validate";
@@ -55,7 +55,7 @@ authRouter.post("/register", validate({ body: registerSchema }), async (req, res
   try {
     const { name, email, password } = req.body;
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) throw badRequest("An account with this email already exists");
+    if (existing) throw conflict("An account with this email already exists");
     const user = await prisma.user.create({
       data: { name, email, passwordHash: hashPassword(password) },
     });

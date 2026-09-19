@@ -81,7 +81,7 @@ export default function OnboardingPage() {
         )}
         {step === 2 && (
           <>
-            <h1 className="text-[22px] font-semibold tracking-tight">You're all set</h1>
+            <h1 className="text-[22px] font-semibold tracking-tight">You&apos;re all set</h1>
             <p className="mt-1.5 text-[13px] text-fg-muted">Opening your project — add a collection and send your first request.</p>
           </>
         )}

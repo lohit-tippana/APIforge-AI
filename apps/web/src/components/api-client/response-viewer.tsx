@@ -7,7 +7,6 @@ import type { ExecutedResponse } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ScrollArea, Tooltip } from "@/components/ui/misc";
-import { toast } from "sonner";
 
 // ── Collapsible JSON tree ───────────────────────────────────
 

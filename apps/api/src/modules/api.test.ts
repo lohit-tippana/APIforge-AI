@@ -37,7 +37,7 @@ describe("API integration", () => {
 
   it("rejects duplicate registration", async () => {
     const res = await agent().post("/api/auth/register").send(user);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(409);
   });
 
   it("returns the session via /me", async () => {

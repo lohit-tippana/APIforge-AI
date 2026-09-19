@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 import { Check, Eye, EyeOff, Globe, Lock, Plus, Star, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { del, patch, post, put } from "@/lib/api";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/lib/hooks";
 import type { Environment, EnvVariable } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { EmptyState, Separator, Switch, Tooltip } from "@/components/ui/misc";
+import { EmptyState, Tooltip } from "@/components/ui/misc";
 import { toast } from "sonner";
 
 export default function EnvironmentsPage({ params }: { params: Promise<{ workspaceId: string; projectId: string }> }) {
@@ -20,15 +20,6 @@ export default function EnvironmentsPage({ params }: { params: Promise<{ workspa
   const envs = project?.environments ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
   const active = envs.find((e) => e.id === activeId) ?? envs.find((e) => e.isDefault) ?? envs[0];
-  const [rows, setRows] = useState<EnvVariable[]>([]);
-  const [dirty, setDirty] = useState(false);
-
-  useEffect(() => {
-    if (active) {
-      setRows(active.variables);
-      setDirty(false);
-    }
-  }, [active?.id, project]);
 
   const createEnv = useMutation({
     mutationFn: (name: string) => post("/environments", { projectId, name }),
@@ -43,23 +34,17 @@ export default function EnvironmentsPage({ params }: { params: Promise<{ workspa
     onSuccess: () => invalidate(),
   });
   const saveVars = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (variables: EnvVariable[]) => {
       await put(`/environments/${active!.id}/variables`, {
-        variables: rows.filter((r) => r.key.trim()).map((r) => ({ key: r.key, value: r.value, isSecret: r.isSecret, enabled: r.enabled })),
+        variables: variables.filter((r) => r.key.trim()).map((r) => ({ key: r.key, value: r.value, isSecret: r.isSecret, enabled: r.enabled })),
       });
     },
     onSuccess: () => {
-      setDirty(false);
       invalidate();
       toast.success("Environment saved");
     },
     onError: (e) => toast.error(e.message),
   });
-
-  const update = (i: number, patchP: Partial<EnvVariable>) => {
-    setRows((r) => r.map((row, j) => (j === i ? { ...row, ...patchP } : row)));
-    setDirty(true);
-  };
 
   return (
     <div className="flex h-full">
@@ -106,35 +91,49 @@ export default function EnvironmentsPage({ params }: { params: Promise<{ workspa
       {/* Variables editor */}
       <div className="flex min-w-0 flex-1 flex-col">
         {active ? (
-          <>
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-              <div>
-                <h2 className="text-[14px] font-semibold">{active.name}</h2>
-                <p className="text-[11.5px] text-fg-faint">Reference variables as {"{{KEY}}"} in URLs, headers and bodies. Secrets stay server-side.</p>
-              </div>
-              <Button variant="primary" size="sm" onClick={() => saveVars.mutate()} disabled={!dirty || saveVars.isPending}>
-                <Check size={13} /> {saveVars.isPending ? "Saving…" : dirty ? "Save changes" : "Saved"}
-              </Button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-[20px_1fr_1fr_70px_70px_28px] items-center gap-2 border-b border-border px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-fg-faint">
-                <span /><span>Variable</span><span>Value</span><span>Secret</span><span>Enabled</span><span />
-              </div>
-              {rows.map((row, i) => (
-                <VarRow key={i} row={row} onChange={(p) => update(i, p)} onRemove={() => { setRows((r) => r.filter((_, j) => j !== i)); setDirty(true); }} />
-              ))}
-              <div className="px-3 py-2">
-                <Button size="sm" variant="ghost" onClick={() => { setRows((r) => [...r, { id: `new-${Date.now()}`, key: "", value: "", isSecret: false, enabled: true }]); setDirty(true); }}>
-                  <Plus size={13} /> Add variable
-                </Button>
-              </div>
-            </div>
-          </>
+          <VariablesEditor key={active.id} env={active} onSave={(vars) => saveVars.mutate(vars)} saving={saveVars.isPending} />
         ) : (
           <EmptyState icon={<Globe size={22} />} title="No environments" description="Create Development, Staging and Production environments with per-env variables." />
         )}
       </div>
     </div>
+  );
+}
+
+function VariablesEditor({ env, onSave, saving }: { env: Environment; onSave: (vars: EnvVariable[]) => void; saving: boolean }) {
+  const [rows, setRows] = useState<EnvVariable[]>(env.variables);
+  const [dirty, setDirty] = useState(false);
+
+  const update = (i: number, patchP: Partial<EnvVariable>) => {
+    setRows((r) => r.map((row, j) => (j === i ? { ...row, ...patchP } : row)));
+    setDirty(true);
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <div>
+          <h2 className="text-[14px] font-semibold">{env.name}</h2>
+          <p className="text-[11.5px] text-fg-faint">Reference variables as {"{{KEY}}"} in URLs, headers and bodies. Secrets stay server-side.</p>
+        </div>
+        <Button variant="primary" size="sm" onClick={() => { onSave(rows); setDirty(false); }} disabled={!dirty || saving}>
+          <Check size={13} /> {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="grid grid-cols-[20px_1fr_1fr_70px_70px_28px] items-center gap-2 border-b border-border px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-fg-faint">
+          <span /><span>Variable</span><span>Value</span><span>Secret</span><span>Enabled</span><span />
+        </div>
+        {rows.map((row, i) => (
+          <VarRow key={i} row={row} onChange={(p) => update(i, p)} onRemove={() => { setRows((r) => r.filter((_, j) => j !== i)); setDirty(true); }} />
+        ))}
+        <div className="px-3 py-2">
+          <Button size="sm" variant="ghost" onClick={() => { setRows((r) => [...r, { id: `new-${Date.now()}`, key: "", value: "", isSecret: false, enabled: true }]); setDirty(true); }}>
+            <Plus size={13} /> Add variable
+          </Button>
+        </div>
+      </div>
+    </>
   );
 }
 

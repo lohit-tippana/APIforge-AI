@@ -43,7 +43,7 @@ export function createApp() {
   app.use("/api/projects", projectsRouter);
   app.use("/api", collectionsRouter);
   app.use("/api/environments", environmentsRouter);
-  app.use("/api/execute", executeRouter);
+  app.use("/api", executeRouter);
   app.use("/api", testsRouter);
   app.use("/api/ai", aiRouter);
   app.use("/api", teamRouter);
