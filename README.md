@@ -2,6 +2,8 @@
 
 **AI-powered API development, testing & collaboration platform** — a production-grade developer SaaS combining an API client (Postman-style), an assertion-based testing engine with a collection runner, generated documentation, team workspaces with RBAC, and an AI assistant.
 
+**Live demo:** https://organisations-contents-essex-publisher.trycloudflare.com — sign in with `demo@apiforge.dev` / `demo1234`.
+
 ## Features
 
 - **API client** — full request builder: methods, params, headers, auth (Bearer / Basic / API key), JSON / form-data / urlencoded / raw bodies, `{{env}}` interpolation
