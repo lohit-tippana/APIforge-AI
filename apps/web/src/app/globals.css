@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Surfaces ── */
+  --color-bg: #0b0c0e;
+  --color-surface: #101114;
+  --color-surface-2: #16181d;
+  --color-surface-3: #1d2026;
+  --color-overlay: #22252c;
+
+  /* ── Borders ── */
+  --color-border: #23262d;
+  --color-border-strong: #31353d;
+
+  /* ── Text ── */
+  --color-fg: #e8e9ec;
+  --color-fg-muted: #9ca1ab;
+  --color-fg-faint: #63676f;
+
+  /* ── Accent (forge amber) ── */
+  --color-accent: #f0a04b;
+  --color-accent-strong: #ffb85e;
+  --color-accent-fg: #18100a;
+  --color-accent-dim: #f0a04b1f;
+
+  /* ── Status ── */
+  --color-success: #4ade80;
+  --color-success-dim: #4ade801f;
+  --color-danger: #f87171;
+  --color-danger-dim: #f871711f;
+  --color-warning: #fbbf24;
+  --color-info: #60a5fa;
+  --color-info-dim: #60a5fa1f;
+
+  /* ── HTTP methods ── */
+  --color-method-get: #4ade80;
+  --color-method-post: #60a5fa;
+  --color-method-put: #fbbf24;
+  --color-method-patch: #fb923c;
+  --color-method-delete: #f87171;
+  --color-method-head: #c084fc;
+  --color-method-options: #94a3b8;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+
+  --shadow-pop: 0 8px 30px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #f0a04b33;
+}
+
+/* ── Scrollbars ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2c3038 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2c3038;
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a3f48;
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid #f0a04b66;
+  outline-offset: 1px;
+  border-radius: var(--radius-xs);
+}
+
+/* ── Method text colors ── */
+.method-get { color: var(--color-method-get); }
+.method-post { color: var(--color-method-post); }
+.method-put { color: var(--color-method-put); }
+.method-patch { color: var(--color-method-patch); }
+.method-delete { color: var(--color-method-delete); }
+.method-head { color: var(--color-method-head); }
+.method-options { color: var(--color-method-options); }
+
+/* ── CodeMirror theme alignment ── */
+.cm-editor {
+  background: transparent !important;
+  font-size: 12.5px;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.cm-gutters {
+  background: transparent !important;
+  border-right: 1px solid var(--color-border) !important;
+  color: var(--color-fg-faint) !important;
+}
+.cm-activeLine {
+  background: #ffffff08 !important;
+}
+.cm-activeLineGutter {
+  background: transparent !important;
+  color: var(--color-fg-muted) !important;
+}
+
+/* ── Radix animation ── */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.97) translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.98) translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-overlay { animation: overlay-in 120ms ease-out; }
+.animate-pop { animation: pop-in 130ms cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-dialog { animation: dialog-in 150ms cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ── Markdown-ish doc content ── */
+.doc-content h1 { font-size: 20px; font-weight: 650; margin: 20px 0 10px; color: var(--color-fg); }
+.doc-content h2 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; color: var(--color-fg); }
+.doc-content h3 { font-size: 13.5px; font-weight: 600; margin: 14px 0 6px; color: var(--color-fg); }
+.doc-content p { margin: 8px 0; color: var(--color-fg-muted); }
+.doc-content code { font-family: var(--font-mono); font-size: 12px; background: var(--color-surface-3); padding: 1px 5px; border-radius: 4px; }
+.doc-content pre { background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; overflow-x: auto; margin: 10px 0; }
+.doc-content pre code { background: none; padding: 0; }
+.doc-content table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.5px; }
+.doc-content th, .doc-content td { border: 1px solid var(--color-border); padding: 6px 10px; text-align: left; }
+.doc-content th { background: var(--color-surface-2); font-weight: 600; }
+.doc-content ul { list-style: disc; padding-left: 20px; color: var(--color-fg-muted); margin: 8px 0; }

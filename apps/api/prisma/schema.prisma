@@ -1,0 +1,406 @@
+// APIForge AI — database schema
+// Provider note: dev runs against local MySQL 8. The schema avoids
+// vendor-specific types so a PostgreSQL port is a provider-line change
+// plus regenerated migrations. docker-compose ships MySQL + Redis.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Identity ────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.VarChar(255)
+  name         String   @db.VarChar(120)
+  passwordHash String   @db.VarChar(255)
+  avatarUrl    String?  @db.VarChar(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships   WorkspaceMember[]
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+  activities    ActivityLog[]
+  apiKeys       ApiKey[]
+  histories     RequestHistory[]
+  conversations AiConversation[]
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique @db.VarChar(255)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?   @db.VarChar(64)
+  userAgent  String?   @db.VarChar(300)
+  ip         String?   @db.VarChar(64)
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String    @db.VarChar(120)
+  prefix     String    @db.VarChar(16)
+  keyHash    String    @unique @db.VarChar(255)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ── Workspaces & projects ───────────────────────────────────
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(120)
+  slug      String   @unique @db.VarChar(140)
+  icon      String?  @db.VarChar(40)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       WorkspaceMember[]
+  projects      Project[]
+  invites       WorkspaceInvite[]
+  notifications Notification[]
+  activities    ActivityLog[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String   @default("DEVELOPER") @db.VarChar(20) // OWNER | ADMIN | DEVELOPER | VIEWER
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model WorkspaceInvite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String    @db.VarChar(255)
+  role        String    @default("DEVELOPER") @db.VarChar(20)
+  token       String    @unique @db.VarChar(64)
+  status      String    @default("PENDING") @db.VarChar(20) // PENDING | ACCEPTED | REVOKED | EXPIRED
+  invitedById String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String   @db.VarChar(140)
+  slug        String   @db.VarChar(160)
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  collections  Collection[]
+  environments Environment[]
+  testRuns     TestRun[]
+  documents    Documentation[]
+  histories    RequestHistory[]
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId])
+}
+
+// ── Collections / request tree ──────────────────────────────
+
+model Collection {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String   @db.VarChar(160)
+  description String?  @db.VarChar(500)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folders  Folder[]
+  requests Request[]
+  testRuns TestRun[]
+
+  @@index([projectId])
+}
+
+model Folder {
+  id           String   @id @default(cuid())
+  collectionId String
+  parentId     String?
+  name         String   @db.VarChar(160)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  parent     Folder?    @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Folder[]   @relation("FolderTree")
+  requests   Request[]
+
+  @@index([collectionId])
+}
+
+model Request {
+  id           String   @id @default(cuid())
+  collectionId String
+  folderId     String?
+  name         String   @db.VarChar(200)
+  method       String   @default("GET") @db.VarChar(10)
+  url          String   @db.VarChar(2000)
+  bodyType     String   @default("NONE") @db.VarChar(20) // NONE | JSON | FORM | URLENCODED | RAW
+  body         String?  @db.LongText
+  authType     String   @default("NONE") @db.VarChar(20) // NONE | BEARER | BASIC | APIKEY
+  authConfig   Json?
+  tests        String?  @db.LongText // optional post-response script (future)
+  sortOrder    Int      @default(0)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  collection Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  folder     Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  headers    RequestHeader[]
+  params     RequestParam[]
+  assertions TestAssertion[]
+  histories  RequestHistory[]
+
+  @@index([collectionId])
+  @@index([folderId])
+}
+
+model RequestHeader {
+  id        String  @id @default(cuid())
+  requestId String
+  key       String  @db.VarChar(200)
+  value     String  @db.VarChar(2000)
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model RequestParam {
+  id        String  @id @default(cuid())
+  requestId String
+  key       String  @db.VarChar(200)
+  value     String  @db.VarChar(2000)
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+// ── Environments ────────────────────────────────────────────
+
+model Environment {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String   @db.VarChar(120)
+  isDefault Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  variables EnvironmentVariable[]
+
+  @@index([projectId])
+}
+
+model EnvironmentVariable {
+  id            String  @id @default(cuid())
+  environmentId String
+  key           String  @db.VarChar(160)
+  value         String  @db.VarChar(4000)
+  isSecret      Boolean @default(false)
+  enabled       Boolean @default(true)
+  sortOrder     Int     @default(0)
+
+  environment Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@index([environmentId])
+}
+
+// ── Testing ─────────────────────────────────────────────────
+
+model TestAssertion {
+  id        String  @id @default(cuid())
+  requestId String
+  type      String  @db.VarChar(40) // STATUS | RESPONSE_TIME | JSON_EXISTS | JSON_EQUALS | JSON_TYPE | HEADER_EXISTS | HEADER_EQUALS | BODY_CONTAINS | SCHEMA
+  target    String? @db.VarChar(500)
+  operator  String? @db.VarChar(20) // EQ | NEQ | LT | LTE | GT | GTE | CONTAINS
+  expected  String? @db.VarChar(4000)
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model TestRun {
+  id            String    @id @default(cuid())
+  projectId     String
+  collectionId  String?
+  environmentId String?
+  name          String    @db.VarChar(200)
+  status        String    @default("RUNNING") @db.VarChar(20) // RUNNING | PASSED | FAILED | ERROR
+  totalRequests Int       @default(0)
+  passed        Int       @default(0)
+  failed        Int       @default(0)
+  skipped       Int       @default(0)
+  durationMs    Int       @default(0)
+  triggeredById String?
+  createdAt     DateTime  @default(now())
+
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  results    TestResult[]
+
+  @@index([projectId])
+  @@index([collectionId])
+}
+
+model TestResult {
+  id             String  @id @default(cuid())
+  testRunId      String
+  requestId      String?
+  requestName    String  @db.VarChar(200)
+  method         String  @db.VarChar(10)
+  url            String  @db.VarChar(2000)
+  status         String  @db.VarChar(20) // PASSED | FAILED | SKIPPED | ERROR
+  statusCode     Int?
+  responseTimeMs Int?
+  error          String? @db.VarChar(1000)
+  passed         Int     @default(0)
+  failed         Int     @default(0)
+  skipped        Int     @default(0)
+  assertionLog   Json?   // per-assertion results
+  sortOrder      Int     @default(0)
+
+  testRun TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+
+  @@index([testRunId])
+}
+
+// ── History ─────────────────────────────────────────────────
+
+model RequestHistory {
+  id             String   @id @default(cuid())
+  projectId      String
+  requestId      String?
+  userId         String
+  method         String   @db.VarChar(10)
+  url            String   @db.VarChar(2000)
+  statusCode     Int?
+  responseTimeMs Int?
+  responseSize   Int?
+  createdAt      DateTime @default(now())
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  request Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([requestId])
+}
+
+// ── Docs / notifications / activity / AI ────────────────────
+
+model Documentation {
+  id           String   @id @default(cuid())
+  projectId    String
+  collectionId String?
+  title        String   @db.VarChar(200)
+  slug         String   @db.VarChar(220)
+  content      String   @db.LongText
+  source       String   @default("MANUAL") @db.VarChar(20) // MANUAL | AI | GENERATED
+  published    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  workspaceId String?
+  type        String    @db.VarChar(40)
+  title       String    @db.VarChar(200)
+  body        String?   @db.VarChar(1000)
+  meta        Json?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  projectId   String?
+  userId      String
+  action      String   @db.VarChar(60) // created | updated | deleted | ran | invited ...
+  entityType  String   @db.VarChar(40)
+  entityId    String?  @db.VarChar(64)
+  entityName  String?  @db.VarChar(200)
+  meta        Json?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([projectId])
+}
+
+model AiConversation {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String?
+  projectId   String?
+  title       String   @db.VarChar(200)
+  messages    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
